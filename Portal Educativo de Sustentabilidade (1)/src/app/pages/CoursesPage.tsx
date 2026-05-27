@@ -1,10 +1,77 @@
 import { useState, useEffect } from "react";
 import { BookOpen, Clock, Award, Play, Filter } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { Link } from "react-router";
+
+export const sampleCourses = [
+  {
+    id: "1",
+    title: "Introdução à Energia Solar",
+    description: "Aprenda os fundamentos da energia solar e como implementar em sua casa",
+    category: "energy",
+    level: "beginner",
+    duration: "4 horas",
+    lessons: 12,
+    students: 245,
+    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop"
+  },
+  {
+    id: "2",
+    title: "Reciclagem Avançada",
+    description: "Técnicas avançadas de separação e transformação de resíduos",
+    category: "recycling",
+    level: "advanced",
+    duration: "6 horas",
+    lessons: 18,
+    students: 189,
+    image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop"
+  },
+  {
+    id: "3",
+    title: "Consumo Consciente no Dia a Dia",
+    description: "Práticas diárias para reduzir seu impacto ambiental",
+    category: "consumption",
+    level: "beginner",
+    duration: "3 horas",
+    lessons: 10,
+    students: 432,
+    image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&h=300&fit=crop"
+  },
+  {
+    id: "4",
+    title: "Preservação da Biodiversidade",
+    description: "Entenda a importância da biodiversidade e como preservá-la",
+    category: "biodiversity",
+    level: "intermediate",
+    duration: "5 horas",
+    lessons: 15,
+    students: 312,
+    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop"
+  },
+  {
+    id: "5",
+    title: "Energia Eólica: Do Básico ao Avançado",
+    description: "Compreenda o funcionamento e aplicações da energia eólica",
+    category: "energy",
+    level: "intermediate",
+    duration: "7 horas",
+    lessons: 20,
+    students: 198,
+    image: "https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=400&h=300&fit=crop"
+  },
+  {
+    id: "6",
+    title: "Compostagem Doméstica",
+    description: "Aprenda a transformar resíduos orgânicos em adubo de qualidade",
+    category: "recycling",
+    level: "beginner",
+    duration: "2 horas",
+    lessons: 8,
+    students: 567,
+    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop"
+  }
+];
 
 export function CoursesPage() {
-  const { accessToken } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
@@ -22,75 +89,6 @@ export function CoursesPage() {
     { id: "beginner", name: "Iniciante" },
     { id: "intermediate", name: "Intermediário" },
     { id: "advanced", name: "Avançado" }
-  ];
-
-  const sampleCourses = [
-    {
-      id: "1",
-      title: "Introdução à Energia Solar",
-      description: "Aprenda os fundamentos da energia solar e como implementar em sua casa",
-      category: "energy",
-      level: "beginner",
-      duration: "4 horas",
-      lessons: 12,
-      students: 245,
-      image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop"
-    },
-    {
-      id: "2",
-      title: "Reciclagem Avançada",
-      description: "Técnicas avançadas de separação e transformação de resíduos",
-      category: "recycling",
-      level: "advanced",
-      duration: "6 horas",
-      lessons: 18,
-      students: 189,
-      image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop"
-    },
-    {
-      id: "3",
-      title: "Consumo Consciente no Dia a Dia",
-      description: "Práticas diárias para reduzir seu impacto ambiental",
-      category: "consumption",
-      level: "beginner",
-      duration: "3 horas",
-      lessons: 10,
-      students: 432,
-      image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&h=300&fit=crop"
-    },
-    {
-      id: "4",
-      title: "Preservação da Biodiversidade",
-      description: "Entenda a importância da biodiversidade e como preservá-la",
-      category: "biodiversity",
-      level: "intermediate",
-      duration: "5 horas",
-      lessons: 15,
-      students: 312,
-      image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop"
-    },
-    {
-      id: "5",
-      title: "Energia Eólica: Do Básico ao Avançado",
-      description: "Compreenda o funcionamento e aplicações da energia eólica",
-      category: "energy",
-      level: "intermediate",
-      duration: "7 horas",
-      lessons: 20,
-      students: 198,
-      image: "https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=400&h=300&fit=crop"
-    },
-    {
-      id: "6",
-      title: "Compostagem Doméstica",
-      description: "Aprenda a transformar resíduos orgânicos em adubo de qualidade",
-      category: "recycling",
-      level: "beginner",
-      duration: "2 horas",
-      lessons: 8,
-      students: 567,
-      image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=300&fit=crop"
-    }
   ];
 
   useEffect(() => {
@@ -214,10 +212,10 @@ export function CoursesPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">{course.students} alunos</span>
-                <button className="flex items-center bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
+                <Link to={`/courses/${course.id}`} className="flex items-center bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
                   <Play className="w-4 h-4 mr-1" />
                   Iniciar
-                </button>
+                </Link>
               </div>
             </div>
           </div>

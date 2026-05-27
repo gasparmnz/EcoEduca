@@ -1,60 +1,52 @@
 import { useState, useEffect } from "react";
-import { User, Award, BookOpen, TrendingUp, Settings, LogOut } from "lucide-react";
+import { User, Award, BookOpen, TrendingUp, Settings, LogOut, Edit2, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
 
 export function ProfilePage() {
-  const { user, accessToken, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [editingName, setEditingName] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [tempName, setTempName] = useState("");
 
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
-    loadProfile();
-  }, [user, accessToken]);
-
-  const loadProfile = async () => {
-    if (!accessToken) return;
-
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      const data = await response.json();
-      setProfile(data.profile || {});
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const name = (user as any).user_metadata?.name || user.email || "";
+    setDisplayName(name);
+    setTempName(name);
+  }, [user, navigate]);
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Carregando...</div>
-      </div>
-    );
-  }
+  const handleSaveName = () => {
+    if (tempName.trim()) {
+      setDisplayName(tempName.trim());
+      const stored = localStorage.getItem('eco_user');
+      if (stored) {
+        const userData = JSON.parse(stored);
+        userData.user_metadata = { ...userData.user_metadata, name: tempName.trim() };
+        localStorage.setItem('eco_user', JSON.stringify(userData));
+      }
+    }
+    setEditingName(false);
+  };
 
-  const completedCourses = profile?.coursesCompleted || [];
-  const badges = profile?.badges || [];
-  const points = profile?.points || 0;
+  const carbonHistory: { date: string; total: number }[] = JSON.parse(
+    localStorage.getItem('eco_carbon_history') || '[]'
+  );
+
+  const accounts: any[] = JSON.parse(localStorage.getItem('eco_accounts') || '[]');
+  const account = accounts.find(a => a.email === user?.email);
+  const joinDate = account?.id?.replace('user_', '') || Date.now().toString();
+
+  if (!user) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -77,17 +69,45 @@ export function ProfilePage() {
               <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <User className="w-12 h-12 text-green-700" />
               </div>
-              <h2 className="text-2xl font-semibold mb-1">{profile?.name || user?.email}</h2>
-              <p className="text-gray-600 mb-4">{user?.email}</p>
+
+              {editingName ? (
+                <div className="flex items-center gap-2 mb-1 w-full justify-center">
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={e => setTempName(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-500 text-lg font-semibold w-full max-w-xs"
+                    onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                    autoFocus
+                  />
+                  <button onClick={handleSaveName} className="text-green-700 hover:text-green-800">
+                    <Check className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-2xl font-semibold">{displayName}</h2>
+                  <button
+                    onClick={() => { setTempName(displayName); setEditingName(true); }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              <p className="text-gray-600 mb-4">{user.email}</p>
 
               <div className="w-full border-t pt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-600">Pontos</span>
-                  <span className="text-2xl font-bold text-green-700">{points}</span>
+                  <span className="text-gray-600">Cálculos Realizados</span>
+                  <span className="text-xl font-semibold">{carbonHistory.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Cursos Completos</span>
-                  <span className="text-xl font-semibold">{completedCourses.length}</span>
+                  <span className="text-gray-600">Membro desde</span>
+                  <span className="text-sm font-semibold">
+                    {new Date(parseInt(joinDate)).toLocaleDateString('pt-BR')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -98,14 +118,17 @@ export function ProfilePage() {
               <Settings className="w-5 h-5 mr-2" />
               Configurações
             </h3>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors">
-              Editar Perfil
+            <button
+              onClick={() => { setTempName(displayName); setEditingName(true); }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              Editar Nome
             </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors">
-              Notificações
+            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors text-gray-400 cursor-default">
+              Notificações (em breve)
             </button>
-            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors">
-              Privacidade
+            <button className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors text-gray-400 cursor-default">
+              Privacidade (em breve)
             </button>
           </div>
         </div>
@@ -118,7 +141,6 @@ export function ProfilePage() {
               <Award className="w-6 h-6 mr-2 text-yellow-500" />
               Conquistas e Medalhas
             </h3>
-
             <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -126,22 +148,19 @@ export function ProfilePage() {
                 </div>
                 <p className="text-xs font-semibold text-gray-700">Primeira Conta</p>
               </div>
-
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <BookOpen className="w-8 h-8 text-green-500" />
+              <div className={`text-center p-4 rounded-lg ${carbonHistory.length > 0 ? "bg-green-50" : "bg-gray-50 opacity-50"}`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${carbonHistory.length > 0 ? "bg-green-100" : "bg-gray-100"}`}>
+                  <BookOpen className={`w-8 h-8 ${carbonHistory.length > 0 ? "text-green-500" : "text-gray-400"}`} />
                 </div>
-                <p className="text-xs font-semibold text-gray-700">Primeiro Curso</p>
+                <p className="text-xs font-semibold text-gray-700">1º Cálculo</p>
               </div>
-
-              <div className="text-center p-4 bg-blue-50 rounded-lg opacity-50">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Award className="w-8 h-8 text-gray-400" />
+              <div className={`text-center p-4 rounded-lg ${carbonHistory.length >= 5 ? "bg-blue-50" : "bg-gray-50 opacity-50"}`}>
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2 ${carbonHistory.length >= 5 ? "bg-blue-100" : "bg-gray-100"}`}>
+                  <Award className={`w-8 h-8 ${carbonHistory.length >= 5 ? "text-blue-500" : "text-gray-400"}`} />
                 </div>
-                <p className="text-xs font-semibold text-gray-700">100 Pontos</p>
+                <p className="text-xs font-semibold text-gray-700">5 Cálculos</p>
               </div>
-
-              <div className="text-center p-4 bg-purple-50 rounded-lg opacity-50">
+              <div className="text-center p-4 bg-gray-50 rounded-lg opacity-50">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                   <TrendingUp className="w-8 h-8 text-gray-400" />
                 </div>
@@ -150,33 +169,40 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Course Progress */}
+          {/* Carbon History */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <BookOpen className="w-6 h-6 mr-2 text-green-700" />
-              Progresso em Cursos
+              <TrendingUp className="w-6 h-6 mr-2 text-green-700" />
+              Histórico de Pegada de Carbono
             </h3>
 
-            {completedCourses.length === 0 ? (
+            {carbonHistory.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">Você ainda não completou nenhum curso</p>
+                <p className="text-gray-600 mb-4">Você ainda não calculou sua pegada de carbono</p>
                 <button
-                  onClick={() => navigate("/courses")}
+                  onClick={() => navigate("/impact")}
                   className="bg-green-700 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
                 >
-                  Explorar Cursos
+                  Calcular Agora
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {completedCourses.map((courseId: string, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold">Curso {courseId}</h4>
-                        <p className="text-sm text-gray-600">Completo</p>
+              <div className="space-y-3">
+                {carbonHistory.slice(0, 5).map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-600">
+                      {new Date(item.date).toLocaleDateString('pt-BR')}
+                    </span>
+                    <div className="flex items-center">
+                      <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                        <div
+                          className="bg-green-600 h-2 rounded-full"
+                          style={{ width: `${Math.min((item.total / 10) * 100, 100)}%` }}
+                        />
                       </div>
-                      <Award className="w-8 h-8 text-yellow-500" />
+                      <span className="font-semibold text-green-700 text-sm">
+                        {item.total.toFixed(2)} t CO₂/ano
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -184,51 +210,29 @@ export function ProfilePage() {
             )}
           </div>
 
-          {/* Activity Timeline */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <TrendingUp className="w-6 h-6 mr-2 text-green-700" />
-              Atividade Recente
-            </h3>
-
-            <div className="space-y-4">
-              <div className="flex items-start">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
-                <div>
-                  <p className="font-medium">Conta criada</p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(profile?.createdAt || Date.now()).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-
-              {points > 0 && (
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
-                  <div>
-                    <p className="font-medium">Ganhou {points} pontos</p>
-                    <p className="text-sm text-gray-600">Por participação na comunidade</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Impact Summary */}
           <div className="bg-gradient-to-r from-green-500 to-green-700 text-white rounded-lg shadow-md p-6">
             <h3 className="text-xl font-semibold mb-4">Seu Impacto Ambiental</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <div className="text-3xl font-bold">0</div>
-                <div className="text-sm text-green-100">Cursos Completados</div>
+                <div className="text-3xl font-bold">{carbonHistory.length}</div>
+                <div className="text-sm text-green-100">Cálculos Realizados</div>
               </div>
               <div>
-                <div className="text-3xl font-bold">{points}</div>
-                <div className="text-sm text-green-100">Pontos Conquistados</div>
+                <div className="text-3xl font-bold">
+                  {carbonHistory.length > 0
+                    ? carbonHistory[carbonHistory.length - 1].total.toFixed(1)
+                    : "0"}
+                </div>
+                <div className="text-sm text-green-100">t CO₂ (1º cálculo)</div>
               </div>
               <div>
-                <div className="text-3xl font-bold">0</div>
-                <div className="text-sm text-green-100">Desafios Aceitos</div>
+                <div className="text-3xl font-bold">
+                  {carbonHistory.length > 1
+                    ? Math.max(0, carbonHistory[carbonHistory.length - 1].total - carbonHistory[0].total).toFixed(1)
+                    : "0"}
+                </div>
+                <div className="text-sm text-green-100">t CO₂ Economizadas</div>
               </div>
             </div>
           </div>

@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
 
 interface User {
   id: string;
@@ -26,83 +25,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      fetch(`https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/auth/session`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.authenticated) {
-            setUser(data.user);
-            setAccessToken(token);
-          } else {
-            localStorage.removeItem('access_token');
-          }
-        })
-        .catch(err => {
-          console.error('Session check error:', err);
-          localStorage.removeItem('access_token');
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    const storedUser = localStorage.getItem('eco_user');
+    const storedToken = localStorage.getItem('eco_token');
+    if (storedUser && storedToken) {
+      setUser(JSON.parse(storedUser));
+      setAccessToken(storedToken);
     }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/auth/login`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({ email, password })
-      }
-    );
+    const accounts = JSON.parse(localStorage.getItem('eco_accounts') || '[]');
+    const account = accounts.find((a: any) => a.email === email && a.password === password);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+    if (!account) {
+      throw new Error('Email ou senha inválidos');
     }
 
-    setUser(data.user);
-    setAccessToken(data.access_token);
-    localStorage.setItem('access_token', data.access_token);
+    const token = `token_${Date.now()}`;
+    const userData: User = {
+      id: account.id,
+      email: account.email,
+      user_metadata: { name: account.name }
+    };
+
+    setUser(userData);
+    setAccessToken(token);
+    localStorage.setItem('eco_user', JSON.stringify(userData));
+    localStorage.setItem('eco_token', token);
   };
 
   const signup = async (email: string, password: string, name: string) => {
-    const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/auth/signup`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({ email, password, name })
-      }
-    );
+    const accounts = JSON.parse(localStorage.getItem('eco_accounts') || '[]');
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Signup failed');
+    if (accounts.find((a: any) => a.email === email)) {
+      throw new Error('Este email já está cadastrado');
     }
 
-    // Auto login after signup
+    const newAccount = { id: `user_${Date.now()}`, email, password, name };
+    accounts.push(newAccount);
+    localStorage.setItem('eco_accounts', JSON.stringify(accounts));
+
     await login(email, password);
   };
 
   const logout = () => {
     setUser(null);
     setAccessToken(null);
-    localStorage.removeItem('access_token');
+    localStorage.removeItem('eco_user');
+    localStorage.removeItem('eco_token');
   };
 
   return (

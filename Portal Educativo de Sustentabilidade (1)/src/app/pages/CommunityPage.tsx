@@ -1,130 +1,126 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MessageSquare, ThumbsUp, Award, TrendingUp, Plus, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+
+const initialPosts = [
+  {
+    id: "1",
+    title: "Minha experiência com painéis solares",
+    content: "Instalei painéis solares em casa há 6 meses e a conta de luz caiu 70%! Vale muito a pena o investimento inicial.",
+    category: "tips",
+    authorName: "Maria Silva",
+    likes: 24,
+    replies: 8,
+    createdAt: "2026-05-20T10:00:00Z"
+  },
+  {
+    id: "2",
+    title: "Projeto de horta comunitária no bairro",
+    content: "Estamos iniciando uma horta comunitária no bairro. Precisamos de voluntários para ajudar com a manutenção semanal!",
+    category: "projects",
+    authorName: "João Santos",
+    likes: 18,
+    replies: 12,
+    createdAt: "2026-05-22T14:30:00Z"
+  },
+  {
+    id: "3",
+    title: "Como reduzir o plástico no dia a dia?",
+    content: "Tenho tentado eliminar o plástico descartável da minha rotina. Alguém tem dicas de alternativas acessíveis para embalagens?",
+    category: "questions",
+    authorName: "Ana Costa",
+    likes: 31,
+    replies: 15,
+    createdAt: "2026-05-24T09:15:00Z"
+  },
+  {
+    id: "4",
+    title: "Resultado do desafio Semana Sem Carro",
+    content: "Completei o desafio e fui de bicicleta ao trabalho por 7 dias seguidos. Economizei R$120 em combustível e me senti muito melhor fisicamente!",
+    category: "general",
+    authorName: "Pedro Alves",
+    likes: 42,
+    replies: 6,
+    createdAt: "2026-05-25T16:45:00Z"
+  }
+];
+
+const topContributors = [
+  { name: "Maria Silva", points: 1250 },
+  { name: "João Santos", points: 980 },
+  { name: "Ana Costa", points: 750 }
+];
+
+const categories = [
+  { id: "general", name: "Geral", color: "bg-gray-100 text-gray-700" },
+  { id: "tips", name: "Dicas", color: "bg-blue-100 text-blue-700" },
+  { id: "projects", name: "Projetos", color: "bg-green-100 text-green-700" },
+  { id: "questions", name: "Perguntas", color: "bg-purple-100 text-purple-700" }
+];
 
 export function CommunityPage() {
-  const { user, accessToken } = useAuth();
-  const [posts, setPosts] = useState<any[]>([]);
+  const { user } = useAuth();
+  const [posts, setPosts] = useState(initialPosts);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [newPostCategory, setNewPostCategory] = useState("general");
-  const [userProfile, setUserProfile] = useState<any>(null);
-
-  const categories = [
-    { id: "general", name: "Geral", color: "bg-gray-100 text-gray-700" },
-    { id: "tips", name: "Dicas", color: "bg-blue-100 text-blue-700" },
-    { id: "projects", name: "Projetos", color: "bg-green-100 text-green-700" },
-    { id: "questions", name: "Perguntas", color: "bg-purple-100 text-purple-700" }
-  ];
-
-  useEffect(() => {
-    loadPosts();
-    if (user && accessToken) {
-      loadUserProfile();
-    }
-  }, [user, accessToken]);
-
-  const loadPosts = async () => {
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/forum/posts`,
-        {
-          headers: {
-            Authorization: `Bearer ${publicAnonKey}`
-          }
-        }
-      );
-      const data = await response.json();
-      setPosts(data.posts || []);
-    } catch (error) {
-      console.error('Error loading posts:', error);
-    }
-  };
-
-  const loadUserProfile = async () => {
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      const data = await response.json();
-      setUserProfile(data.profile);
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    }
-  };
-
-  const handleCreatePost = async () => {
-    if (!user || !accessToken) {
-      alert('Você precisa estar logado para criar posts');
-      return;
-    }
-
-    if (!newPostTitle.trim() || !newPostContent.trim()) {
-      alert('Preencha título e conteúdo');
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/forum/posts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            title: newPostTitle,
-            content: newPostContent,
-            category: newPostCategory
-          })
-        }
-      );
-
-      if (response.ok) {
-        setNewPostTitle("");
-        setNewPostContent("");
-        setShowNewPost(false);
-        loadPosts();
-        loadUserProfile();
-      }
-    } catch (error) {
-      console.error('Error creating post:', error);
-    }
-  };
-
-  const handleLikePost = async (postId: string) => {
-    if (!user || !accessToken) {
-      alert('Você precisa estar logado para curtir posts');
-      return;
-    }
-
-    try {
-      await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/forum/posts/${postId}/like`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      loadPosts();
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
-  };
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [userPoints] = useState(user ? 120 : 0);
 
   const getCategoryStyle = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     return category?.color || "bg-gray-100 text-gray-700";
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    return categories.find(c => c.id === categoryId)?.name || categoryId;
+  };
+
+  const handleCreatePost = () => {
+    if (!user) {
+      alert("Você precisa estar logado para criar publicações");
+      return;
+    }
+    if (!newPostTitle.trim() || !newPostContent.trim()) {
+      alert("Preencha título e conteúdo");
+      return;
+    }
+
+    const newPost = {
+      id: `post_${Date.now()}`,
+      title: newPostTitle,
+      content: newPostContent,
+      category: newPostCategory,
+      authorName: (user as any).user_metadata?.name || user.email,
+      likes: 0,
+      replies: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    setPosts(prev => [newPost, ...prev]);
+    setNewPostTitle("");
+    setNewPostContent("");
+    setShowNewPost(false);
+  };
+
+  const handleLikePost = (postId: string) => {
+    if (!user) {
+      alert("Você precisa estar logado para curtir publicações");
+      return;
+    }
+
+    setLikedPosts(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+        setPosts(p => p.map(post => post.id === postId ? { ...post, likes: post.likes - 1 } : post));
+      } else {
+        next.add(postId);
+        setPosts(p => p.map(post => post.id === postId ? { ...post, likes: post.likes + 1 } : post));
+      }
+      return next;
+    });
   };
 
   return (
@@ -140,8 +136,8 @@ export function CommunityPage() {
         {/* Main Content */}
         <div className="lg:col-span-2">
           {/* New Post Button */}
-          {user && (
-            <div className="mb-6">
+          <div className="mb-6">
+            {user ? (
               <button
                 onClick={() => setShowNewPost(!showNewPost)}
                 className="w-full bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center"
@@ -149,8 +145,12 @@ export function CommunityPage() {
                 <Plus className="w-5 h-5 mr-2" />
                 Criar Nova Publicação
               </button>
-            </div>
-          )}
+            ) : (
+              <div className="w-full bg-gray-100 text-gray-500 px-6 py-3 rounded-lg text-center text-sm">
+                <a href="/login" className="text-green-700 font-semibold hover:underline">Faça login</a> para criar publicações
+              </div>
+            )}
+          </div>
 
           {/* New Post Form */}
           {showNewPost && (
@@ -158,9 +158,7 @@ export function CommunityPage() {
               <h3 className="text-xl font-semibold mb-4">Nova Publicação</h3>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoria
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
                 <div className="flex flex-wrap gap-2">
                   {categories.map(category => (
                     <button
@@ -182,14 +180,14 @@ export function CommunityPage() {
                 type="text"
                 placeholder="Título da publicação"
                 value={newPostTitle}
-                onChange={(e) => setNewPostTitle(e.target.value)}
+                onChange={e => setNewPostTitle(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
 
               <textarea
                 placeholder="Compartilhe sua experiência, dica ou pergunta..."
                 value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
+                onChange={e => setNewPostContent(e.target.value)}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
@@ -218,7 +216,7 @@ export function CommunityPage() {
               <div key={post.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getCategoryStyle(post.category)}`}>
-                    {categories.find(c => c.id === post.category)?.name || post.category}
+                    {getCategoryName(post.category)}
                   </span>
                   <span className="text-sm text-gray-500">
                     {new Date(post.createdAt).toLocaleDateString('pt-BR')}
@@ -236,14 +234,16 @@ export function CommunityPage() {
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={() => handleLikePost(post.id)}
-                      className="flex items-center text-gray-600 hover:text-green-700 transition-colors"
+                      className={`flex items-center transition-colors ${
+                        likedPosts.has(post.id) ? "text-green-700" : "text-gray-600 hover:text-green-700"
+                      }`}
                     >
-                      <ThumbsUp className="w-5 h-5 mr-1" />
-                      <span>{post.likes || 0}</span>
+                      <ThumbsUp className={`w-5 h-5 mr-1 ${likedPosts.has(post.id) ? "fill-green-700" : ""}`} />
+                      <span>{post.likes}</span>
                     </button>
                     <div className="flex items-center text-gray-600">
                       <MessageSquare className="w-5 h-5 mr-1" />
-                      <span>{post.replies || 0}</span>
+                      <span>{post.replies}</span>
                     </div>
                   </div>
                 </div>
@@ -262,12 +262,12 @@ export function CommunityPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* User Points */}
-          {userProfile && (
+          {user && (
             <div className="bg-gradient-to-r from-green-500 to-green-700 text-white rounded-lg shadow-md p-6">
               <div className="flex items-center mb-4">
                 <TrendingUp className="w-8 h-8 mr-3" />
                 <div>
-                  <div className="text-3xl font-bold">{userProfile.points || 0}</div>
+                  <div className="text-3xl font-bold">{userPoints}</div>
                   <div className="text-sm text-green-100">Pontos</div>
                 </div>
               </div>
@@ -309,17 +309,13 @@ export function CommunityPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-lg font-semibold mb-4">Top Contribuidores</h3>
             <div className="space-y-3">
-              {[
-                { name: "Maria Silva", points: 1250 },
-                { name: "João Santos", points: 980 },
-                { name: "Ana Costa", points: 750 }
-              ].map((user, index) => (
+              {topContributors.map((contributor, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <span className="text-lg font-bold text-gray-400 w-6">#{index + 1}</span>
-                    <span className="font-medium">{user.name}</span>
+                    <span className="font-medium">{contributor.name}</span>
                   </div>
-                  <span className="text-sm text-green-700 font-semibold">{user.points} pts</span>
+                  <span className="text-sm text-green-700 font-semibold">{contributor.points} pts</span>
                 </div>
               ))}
             </div>

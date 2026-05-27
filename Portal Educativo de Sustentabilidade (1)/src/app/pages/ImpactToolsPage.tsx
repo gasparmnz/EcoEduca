@@ -1,140 +1,101 @@
 import { useState, useEffect } from "react";
-import { Calculator, TrendingDown, Target, Award, BarChart3 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { Calculator, TrendingDown, Target, Award, BarChart3, Check } from "lucide-react";
+
+const challenges = [
+  { id: "1", title: "Semana Sem Carro", description: "Use transporte público ou bicicleta por uma semana", points: 50, icon: "🚴" },
+  { id: "2", title: "Desafio Zero Plástico", description: "Evite produtos com embalagem plástica por 7 dias", points: 40, icon: "♻️" },
+  { id: "3", title: "Segunda Sem Carne", description: "Adote uma alimentação vegetariana às segundas-feiras", points: 30, icon: "🥗" },
+  { id: "4", title: "Economia de Energia", description: "Reduza o consumo de energia em 20% este mês", points: 60, icon: "💡" }
+];
+
+function calculateCarbon(carKm: number, electricityKwh: number, meatMeals: number) {
+  const transportation = (carKm * 0.21 * 12) / 1000;
+  const energy = (electricityKwh * 0.082 * 12) / 1000;
+  const food = (meatMeals * 3.3 * 52) / 1000;
+  return {
+    total: transportation + energy + food,
+    breakdown: { transportation, energy, food }
+  };
+}
+
+function getSuggestions(total: number) {
+  if (total < 2) {
+    return {
+      level: "Excelente!",
+      color: "text-green-700",
+      suggestions: [
+        "Continue com suas práticas sustentáveis",
+        "Compartilhe suas dicas na comunidade",
+        "Considere participar de projetos ambientais"
+      ]
+    };
+  } else if (total < 5) {
+    return {
+      level: "Bom trabalho!",
+      color: "text-blue-700",
+      suggestions: [
+        "Considere usar mais transporte público",
+        "Invista em energia renovável",
+        "Reduza o consumo de carne gradualmente"
+      ]
+    };
+  } else {
+    return {
+      level: "Há espaço para melhorias",
+      color: "text-orange-700",
+      suggestions: [
+        "Reduza o uso do carro sempre que possível",
+        "Economize energia em casa",
+        "Adote uma dieta mais baseada em plantas",
+        "Participe de nossos cursos sobre sustentabilidade"
+      ]
+    };
+  }
+}
 
 export function ImpactToolsPage() {
-  const { user, accessToken } = useAuth();
   const [carKm, setCarKm] = useState("");
   const [electricityKwh, setElectricityKwh] = useState("");
   const [meatMeals, setMeatMeals] = useState("");
-  const [result, setResult] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const challenges = [
-    {
-      id: "1",
-      title: "Semana Sem Carro",
-      description: "Use transporte público ou bicicleta por uma semana",
-      points: 50,
-      icon: "🚴"
-    },
-    {
-      id: "2",
-      title: "Desafio Zero Plástico",
-      description: "Evite produtos com embalagem plástica por 7 dias",
-      points: 40,
-      icon: "♻️"
-    },
-    {
-      id: "3",
-      title: "Segunda Sem Carne",
-      description: "Adote uma alimentação vegetariana às segundas-feiras",
-      points: 30,
-      icon: "🥗"
-    },
-    {
-      id: "4",
-      title: "Economia de Energia",
-      description: "Reduza o consumo de energia em 20% este mês",
-      points: 60,
-      icon: "💡"
-    }
-  ];
+  const [result, setResult] = useState<ReturnType<typeof calculateCarbon> | null>(null);
+  const [history, setHistory] = useState<{ date: string; total: number }[]>([]);
+  const [acceptedChallenges, setAcceptedChallenges] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (user && accessToken) {
-      loadHistory();
-    }
-  }, [user, accessToken]);
+    const stored = localStorage.getItem('eco_carbon_history');
+    if (stored) setHistory(JSON.parse(stored));
+  }, []);
 
-  const loadHistory = async () => {
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/carbon/history`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`
-          }
-        }
-      );
-      const data = await response.json();
-      setHistory(data.history || []);
-    } catch (error) {
-      console.error('Error loading history:', error);
-    }
+  const handleCalculate = () => {
+    const calc = calculateCarbon(
+      parseFloat(carKm) || 0,
+      parseFloat(electricityKwh) || 0,
+      parseFloat(meatMeals) || 0
+    );
+    setResult(calc);
+
+    const newEntry = { date: new Date().toISOString(), total: calc.total };
+    const updated = [newEntry, ...history].slice(0, 10);
+    setHistory(updated);
+    localStorage.setItem('eco_carbon_history', JSON.stringify(updated));
   };
 
-  const handleCalculate = async () => {
-    if (!user || !accessToken) {
-      alert('Você precisa estar logado para usar a calculadora');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-84c7c45b/carbon/calculate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({
-            carKm: parseFloat(carKm) || 0,
-            electricityKwh: parseFloat(electricityKwh) || 0,
-            meatMeals: parseFloat(meatMeals) || 0
-          })
-        }
-      );
-
-      const data = await response.json();
-      setResult(data.calculation);
-      loadHistory();
-    } catch (error) {
-      console.error('Error calculating carbon:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleAcceptChallenge = (challengeId: string) => {
+    setAcceptedChallenges(prev => {
+      const next = new Set(prev);
+      if (next.has(challengeId)) {
+        next.delete(challengeId);
+      } else {
+        next.add(challengeId);
+      }
+      return next;
+    });
   };
 
-  const getSuggestions = (total: number) => {
-    if (total < 2) {
-      return {
-        level: "Excelente!",
-        color: "text-green-700",
-        suggestions: [
-          "Continue com suas práticas sustentáveis",
-          "Compartilhe suas dicas na comunidade",
-          "Considere participar de projetos ambientais"
-        ]
-      };
-    } else if (total < 5) {
-      return {
-        level: "Bom trabalho!",
-        color: "text-blue-700",
-        suggestions: [
-          "Considere usar mais transporte público",
-          "Invista em energia renovável",
-          "Reduza o consumo de carne gradualmente"
-        ]
-      };
-    } else {
-      return {
-        level: "Há espaço para melhorias",
-        color: "text-orange-700",
-        suggestions: [
-          "Reduza o uso do carro sempre que possível",
-          "Economize energia em casa",
-          "Adote uma dieta mais baseada em plantas",
-          "Participe de nossos cursos sobre sustentabilidade"
-        ]
-      };
-    }
-  };
+  const totalPoints = [...acceptedChallenges].reduce((sum, id) => {
+    const ch = challenges.find(c => c.id === id);
+    return sum + (ch?.points || 0);
+  }, 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -162,7 +123,7 @@ export function ImpactToolsPage() {
                 <input
                   type="number"
                   value={carKm}
-                  onChange={(e) => setCarKm(e.target.value)}
+                  onChange={e => setCarKm(e.target.value)}
                   placeholder="Ex: 500"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -175,7 +136,7 @@ export function ImpactToolsPage() {
                 <input
                   type="number"
                   value={electricityKwh}
-                  onChange={(e) => setElectricityKwh(e.target.value)}
+                  onChange={e => setElectricityKwh(e.target.value)}
                   placeholder="Ex: 300"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -188,7 +149,7 @@ export function ImpactToolsPage() {
                 <input
                   type="number"
                   value={meatMeals}
-                  onChange={(e) => setMeatMeals(e.target.value)}
+                  onChange={e => setMeatMeals(e.target.value)}
                   placeholder="Ex: 10"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 />
@@ -196,10 +157,9 @@ export function ImpactToolsPage() {
 
               <button
                 onClick={handleCalculate}
-                disabled={loading}
-                className="w-full bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                className="w-full bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-semibold"
               >
-                {loading ? "Calculando..." : "Calcular Pegada"}
+                Calcular Pegada
               </button>
             </div>
           </div>
@@ -238,16 +198,14 @@ export function ImpactToolsPage() {
               </div>
 
               {(() => {
-                const suggestions = getSuggestions(result.total);
+                const s = getSuggestions(result.total);
                 return (
                   <div>
-                    <h4 className={`text-lg font-semibold mb-3 ${suggestions.color}`}>
-                      {suggestions.level}
-                    </h4>
+                    <h4 className={`text-lg font-semibold mb-3 ${s.color}`}>{s.level}</h4>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <p className="font-medium mb-2">Sugestões de melhoria:</p>
                       <ul className="space-y-2">
-                        {suggestions.suggestions.map((suggestion, index) => (
+                        {s.suggestions.map((suggestion, index) => (
                           <li key={index} className="flex items-start">
                             <TrendingDown className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
                             <span className="text-gray-700">{suggestion}</span>
@@ -261,21 +219,21 @@ export function ImpactToolsPage() {
             </div>
           )}
 
-          {/* History Chart */}
+          {/* History */}
           {history.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center mb-4">
                 <BarChart3 className="w-6 h-6 text-green-700 mr-2" />
-                <h3 className="text-xl font-semibold">Histórico</h3>
+                <h3 className="text-xl font-semibold">Histórico de Cálculos</h3>
               </div>
               <div className="space-y-3">
                 {history.slice(0, 5).map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="text-sm text-gray-600">
-                      {new Date(item.calculatedAt).toLocaleDateString('pt-BR')}
+                      {new Date(item.date).toLocaleDateString('pt-BR')} às {new Date(item.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span className="font-semibold text-green-700">
-                      {item.total.toFixed(2)} t CO₂
+                      {item.total.toFixed(2)} t CO₂/ano
                     </span>
                   </div>
                 ))}
@@ -288,26 +246,55 @@ export function ImpactToolsPage() {
         <div className="space-y-6">
           {/* Weekly Challenges */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center mb-4">
-              <Target className="w-6 h-6 text-green-700 mr-2" />
-              <h3 className="text-lg font-semibold">Desafios Semanais</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Target className="w-6 h-6 text-green-700 mr-2" />
+                <h3 className="text-lg font-semibold">Desafios Semanais</h3>
+              </div>
+              {totalPoints > 0 && (
+                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
+                  +{totalPoints} pts
+                </span>
+              )}
             </div>
             <div className="space-y-4">
-              {challenges.map(challenge => (
-                <div key={challenge.id} className="border border-gray-200 rounded-lg p-4 hover:border-green-500 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="text-2xl">{challenge.icon}</span>
-                    <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
-                      +{challenge.points} pts
-                    </span>
+              {challenges.map(challenge => {
+                const accepted = acceptedChallenges.has(challenge.id);
+                return (
+                  <div
+                    key={challenge.id}
+                    className={`border-2 rounded-lg p-4 transition-colors ${
+                      accepted ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-green-400"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-2xl">{challenge.icon}</span>
+                      <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded-full">
+                        +{challenge.points} pts
+                      </span>
+                    </div>
+                    <h4 className="font-semibold mb-1">{challenge.title}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{challenge.description}</p>
+                    <button
+                      onClick={() => handleAcceptChallenge(challenge.id)}
+                      className={`w-full px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center ${
+                        accepted
+                          ? "bg-green-600 text-white hover:bg-green-700"
+                          : "bg-green-700 text-white hover:bg-green-600"
+                      }`}
+                    >
+                      {accepted ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" />
+                          Desafio Aceito!
+                        </>
+                      ) : (
+                        "Aceitar Desafio"
+                      )}
+                    </button>
                   </div>
-                  <h4 className="font-semibold mb-1">{challenge.title}</h4>
-                  <p className="text-sm text-gray-600 mb-3">{challenge.description}</p>
-                  <button className="w-full bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
-                    Aceitar Desafio
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -317,16 +304,16 @@ export function ImpactToolsPage() {
             <h3 className="text-xl font-semibold mb-2">Seu Impacto</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span>Desafios completados</span>
-                <span className="font-bold">8</span>
+                <span>Desafios aceitos</span>
+                <span className="font-bold">{acceptedChallenges.size}</span>
               </div>
               <div className="flex justify-between">
-                <span>CO₂ economizado</span>
-                <span className="font-bold">245 kg</span>
+                <span>Pontos conquistados</span>
+                <span className="font-bold">{totalPoints}</span>
               </div>
               <div className="flex justify-between">
-                <span>Árvores equivalentes</span>
-                <span className="font-bold">12</span>
+                <span>Cálculos realizados</span>
+                <span className="font-bold">{history.length}</span>
               </div>
             </div>
           </div>

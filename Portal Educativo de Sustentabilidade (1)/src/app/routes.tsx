@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CoursesPage } from "./pages/CoursesPage";
+import { CourseDetailsPage } from "./pages/CourseDetailsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { CommunityPage } from "./pages/CommunityPage";
 import { ImpactToolsPage } from "./pages/ImpactToolsPage";
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "register", Component: RegisterPage },
       { path: "courses", Component: CoursesPage },
+      { path: "courses/:id", Component: CourseDetailsPage },
       { path: "library", Component: LibraryPage },
       { path: "community", Component: CommunityPage },
       { path: "impact", Component: ImpactToolsPage },

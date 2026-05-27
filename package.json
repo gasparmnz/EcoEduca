@@ -1,0 +1,25 @@
+{
+  "name": "ecoeduca",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "node",
+    "app",
+    "js"
+  ],
+  "homepage": "https://github.com/gasparmnz/EcoEduca#readme",
+  "bugs": {
+    "url": "https://github.com/gasparmnz/EcoEduca/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gasparmnz/EcoEduca.git"
+  },
+  "license": "ISC",
+  "author": "Gaspar",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

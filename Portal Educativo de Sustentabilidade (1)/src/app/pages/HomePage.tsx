@@ -1,25 +1,30 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { BookOpen, Users, TrendingUp, Briefcase, Award, ArrowRight, Leaf } from "lucide-react";
 
 export function HomePage() {
+  const navigate = useNavigate();
+
   const highlights = [
     {
       title: "Energia Renovável",
       description: "Aprenda sobre fontes de energia limpa e como implementá-las",
       image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop",
-      category: "Curso em Destaque"
+      category: "Curso em Destaque",
+      link: "/courses/1"
     },
     {
       title: "Reciclagem Inteligente",
       description: "Guia completo sobre separação e destinação correta de resíduos",
       image: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=400&h=300&fit=crop",
-      category: "Novo na Biblioteca"
+      category: "Novo na Biblioteca",
+      link: "/library"
     },
     {
       title: "Horta Urbana",
       description: "Projeto comunitário para criação de hortas em espaços urbanos",
       image: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&h=300&fit=crop",
-      category: "Projeto Ativo"
+      category: "Projeto Ativo",
+      link: "/projects"
     }
   ];
 
@@ -152,7 +157,10 @@ export function HomePage() {
                   </span>
                   <h3 className="text-xl font-semibold mb-2">{highlight.title}</h3>
                   <p className="text-gray-600 mb-4">{highlight.description}</p>
-                  <button className="text-green-700 font-semibold flex items-center hover:text-green-800">
+                  <button
+                    onClick={() => navigate(highlight.link)}
+                    className="text-green-700 font-semibold flex items-center hover:text-green-800"
+                  >
                     Saiba mais
                     <ArrowRight className="ml-1 w-4 h-4" />
                   </button>
